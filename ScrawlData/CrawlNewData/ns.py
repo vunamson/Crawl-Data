@@ -35,7 +35,7 @@ def create_driver():
 def get_urls_from_sheets():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\ScrawlData\CrawlNewData\credentials.json", scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\Crawl Data Git\Crawl-Data\credentials.json", scope)
         client = gspread.authorize(creds)
         sheet_id = "1c_omcHE3AMkUBxFS1Cckwcw0A-fBX5FV6dbJYn_Jg5s"
         sheet = client.open_by_key(sheet_id).worksheet("Torunstyle")
@@ -92,7 +92,7 @@ def check_publish_date(driver, url):
 def save_to_google_sheets(data):
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\ScrawlData\CrawlNewData\credentials.json", scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_name(r"C:\Crawl Data Git\Crawl-Data\credentials.json", scope)
         client = gspread.authorize(creds)
         sheet_id = "1c_omcHE3AMkUBxFS1Cckwcw0A-fBX5FV6dbJYn_Jg5s"
         sheet = client.open_by_key(sheet_id).worksheet("Lấy Link")
