@@ -119,7 +119,7 @@ async def crawl_page(sem, session, object_id, max_retries=1):
 
 # Hàm chính để chạy chương trình với giới hạn 30 request đồng thời
 async def main():
-    start, end = 1768182, 1783182
+    start, end = 1733182, 1748182
     object_ids = list(range(start, end + 1))
 
     sem = asyncio.Semaphore(4)  # Giới hạn 30 request đồng thời
