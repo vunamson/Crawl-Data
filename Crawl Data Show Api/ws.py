@@ -39,7 +39,7 @@ for page in range(1, 220):
     headers = headers_template.copy()
     headers["referer"] = f"https://www.jerseyteamsstores.com/search?page={page}&limit=200&minimal=true&q=hoodie&infinite=false&sort=sold&sort_field=most_related&sort_direction=desc"
     
-    response = requests.get(url, headers=headers, cookies=cookies)
+    response = requests.get(url, headers=headers, cookies=cookies,timeout=10)
     print(f"Trang {page}: Status Code {response.status_code}")
     if response.status_code == 200:
         try:

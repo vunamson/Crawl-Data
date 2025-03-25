@@ -43,16 +43,16 @@ def create_driver():
 
 driver = create_driver()
 product_links = []
-url = "https://www.nflshop.com/hoodies-and-sweatshirts-hoodies/d-8960002344-015912562+z-8-95310126?sortOption=NewestArrivals"
+url = "https://www.shopncaasports.com/jerseys/d-31774590+z-9774861-1004768413"
 driver.get(url)
 time.sleep(5)
-count = 1 ; 
+# count = 1 ; 
 while True:
     try:
-        if(count == 41): break
-        count = count + 1 
+        # if(count == 41): break
+        # count = count + 1 
         # Đợi trang tải hoàn tất trước khi lấy dữ liệu
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.TAG_NAME, 'body'))
         )
         # Lấy tất cả ảnh sản phẩm trên trang hiện tại
@@ -128,10 +128,12 @@ for index, link in enumerate(product_links):
                     # Lấy danh sách ảnh sau khi chọn màu
                     img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
                     img_links = [img.get_attribute("src") for img in img_elements]
+                    price_list = driver.find_elements(By.CSS_SELECTOR, 'span.sr-only')
+                    price = price_list[0].text.strip() if price_list else "Không có giá"
 
                     # Lưu dữ liệu
                     img_links_str = ", ".join(img_links) if img_links else "LỖI"
-                    data.append([name, img_links_str])
+                    data.append([name, img_links_str,price])
                     print(f"✅ {name} ({len(img_links)} ảnh)")
                 except Exception as e:
                     print(f"⚠️ Lỗi khi click màu: {e}")
@@ -141,9 +143,10 @@ for index, link in enumerate(product_links):
             name = name_element.text.strip() if name_element else "N/A"
             img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
             img_links = [img.get_attribute("src") for img in img_elements]
-
+            price_list = driver.find_elements(By.CSS_SELECTOR, 'span.sr-only')
+            price = price_list[0].text.strip() if price_list else "Không có giá"
             img_links_str = ", ".join(img_links) if img_links else "LỖI"
-            data.append([name, img_links_str])
+            data.append([name, img_links_str,price])
             print(f"✅ {name} ({len(img_links)} ảnh)")
 
     except Exception as e:
@@ -156,7 +159,7 @@ for index, link in enumerate(product_links):
 # 4️⃣ Lưu dữ liệu vào file Excel
 driver.quit()
 del driver
-df = pd.DataFrame(data, columns=["Name", "Image Links"])
+df = pd.DataFrame(data, columns=["Name", "Image Links","Price"])
 df.to_excel("output2.xlsx", index=False, engine="openpyxl")
 
 print("🎉 Dữ liệu đã được lưu vào output1.xlsx!")
