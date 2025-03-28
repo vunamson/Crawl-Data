@@ -30,7 +30,7 @@ def get_all_products(category_id):
             page += 1
         else:
             print(f"⚠️ Lỗi {response.status_code}: {response.text}")
-            break
+            continue
 
     print(f"✅ Lấy thành công {len(all_products)} sản phẩm!")
     return all_products

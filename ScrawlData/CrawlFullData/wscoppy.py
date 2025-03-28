@@ -43,7 +43,7 @@ def create_driver():
 
 driver = create_driver()
 product_links = []
-url = "https://global.nbastore.com/en/jerseys/d-2338402972+z-930066-3838517996"
+url = "https://www.fanatics.com/nba/jerseys/o-9147+d-20886701+z-8234-3401468965"
 driver.get(url)
 time.sleep(5)
 # count = 1 ; 
@@ -128,7 +128,7 @@ for index, link in enumerate(product_links):
                     # Lấy danh sách ảnh sau khi chọn màu
                     img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
                     img_links = [img.get_attribute("src") for img in img_elements]
-                    price_list = driver.find_elements(By.CSS_SELECTOR, 'span.sr-only')
+                    price_list = driver.find_elements(By.CSS_SELECTOR, 'span.money-value')
                     price = price_list[0].text.strip() if price_list else "Không có giá"
 
                     # Lưu dữ liệu
@@ -143,7 +143,7 @@ for index, link in enumerate(product_links):
             name = name_element.text.strip() if name_element else "N/A"
             img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
             img_links = [img.get_attribute("src") for img in img_elements]
-            price_list = driver.find_elements(By.CSS_SELECTOR, 'span.sr-only')
+            price_list = driver.find_elements(By.CSS_SELECTOR, 'span.money-value')
             price = price_list[0].text.strip() if price_list else "Không có giá"
             img_links_str = ", ".join(img_links) if img_links else "LỖI"
             data.append([name, img_links_str,price])
@@ -160,6 +160,6 @@ for index, link in enumerate(product_links):
 driver.quit()
 del driver
 df = pd.DataFrame(data, columns=["Name", "Image Links","Price"])
-df.to_excel("nbastore_jerseys.xlsx", index=False, engine="openpyxl")
+df.to_excel("fanatics_nba.xlsx", index=False, engine="openpyxl")
 
 print("🎉 Dữ liệu đã được lưu vào output1.xlsx!")
