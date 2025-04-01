@@ -38,6 +38,7 @@ def is_product_in_cart(soup):
 def parse_html(html):
     soup = BeautifulSoup(html, 'html.parser')
     title = soup.find('h1')
+
     title_text = title.text.strip() if title else 'No Title'
 
     script_tag = soup.find('script', {'class': 'rank-math-schema-pro', 'type': 'application/ld+json'})
