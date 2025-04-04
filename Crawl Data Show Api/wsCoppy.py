@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 import time
 
-url_template = "https://racame.shop/api/catalog/next/products.json?page={}&limit=12&sort_direction=desc&sort_field=manual&minimal=true&infinite=true&collection_ids=86819879790"
+url_template = "https://racame.shop/api/catalog/next/products.json?page={}&limit=12&sort_direction=desc&sort_field=manual&minimal=true&infinite=true&collection_ids=86819879791"
 
 headers_template = {
     "accept": "*/*",
@@ -34,10 +34,10 @@ cookies = {
 
 data_list = []
 
-for page in range(1, 2100):
+for page in range(1, 600):
     url = url_template.format(page)
     headers = headers_template.copy()
-    headers["referer"] = f"https://racame.shop/api/catalog/next/products.json?page={page}&limit=12&sort_direction=desc&sort_field=manual&minimal=true&infinite=true&collection_ids=86819879790"
+    headers["referer"] = f"https://racame.shop/api/catalog/next/products.json?page={page}&limit=12&sort_direction=desc&sort_field=manual&minimal=true&infinite=true&collection_ids=86819879791"
     
     response = requests.get(url, headers=headers, cookies=cookies,timeout=10)
     print(f"Trang {page}: Status Code {response.status_code}")
@@ -50,7 +50,7 @@ for page in range(1, 2100):
                 
                 # Thêm URL đầy đủ cho mỗi sản phẩm
                 for item in items:
-                    item["product_url"] = f"https://racame.shop/collections/nfl/products/{item['handle']}"
+                    item["product_url"] = f"https://racame.shop/collections/mlb/products/{item['handle']}"
                 
                 data_list.extend(items)
             else:
@@ -68,7 +68,7 @@ print(f"Tổng số sản phẩm lấy được: {len(data_list)}")
 # Lưu vào file Excel
 if data_list:
     df = pd.DataFrame(data_list)
-    df.to_excel("racame_nfl.xlsx", index=False)
-    print("Dữ liệu đã được lưu vào racame_nfl.xlsx")
+    df.to_excel("racame_mlb.xlsx", index=False)
+    print("Dữ liệu đã được lưu vào racame_mlb.xlsx")
 else:
     print("Không có dữ liệu để lưu.")
