@@ -120,7 +120,7 @@ async def crawl_page(sem, session, object_id, max_retries=1):
 
 # Hàm chính để chạy chương trình với giới hạn 30 request đồng thời
 async def main():
-    start, end = 1960137, 2000137
+    start, end = 2030137, 2060137
     object_ids = list(range(start, end + 1))
 
     sem = asyncio.Semaphore(4)  # Giới hạn 30 request đồng thời
@@ -130,7 +130,7 @@ async def main():
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
     valid_results = [r for r in results if r]
-    save_to_excel(valid_results, "crawled_keeptee_data_1960137-2000137.xlsx")
+    save_to_excel(valid_results, "crawled_keeptee_data_2030137-2060137.xlsx")
 
     print("🎉 Crawl hoàn tất!")
     print("📊 Tổng số sản phẩm crawl được:", len([r for r in results if r]))
