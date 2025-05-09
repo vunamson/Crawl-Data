@@ -3,10 +3,10 @@ import pandas as pd
 import time
 
 # 🔹 Thông tin API WooCommerce
-BASE_URL = "https://davidress.com/wp-json/wc/v3/products"  # Thay bằng URL website của bạn
-CONSUMER_KEY = "ck_140a74832b999d10f1f5b7b6f97ae8ddc25e835a"
-CONSUMER_SECRET = "cs_d290713d3e1199c51a22dc1e85707bb24bcce769"
-CATEGORY_ID = 397
+BASE_URL = "https://noaweather.com/wp-json/wc/v3/products"  # Thay bằng URL website của bạn
+CONSUMER_KEY = "ck_2aee67011194936fb03769a834503ca8aa5a4795"
+CONSUMER_SECRET = "cs_dbcfaaabe5ea49875c5fcf27a760b141d9549f86"
+CATEGORY_ID = 126
 
 def get_all_products(category_id):
     """
@@ -22,7 +22,7 @@ def get_all_products(category_id):
             f"{BASE_URL}?category={category_id}&per_page={per_page}&page={page}",
             auth=(CONSUMER_KEY, CONSUMER_SECRET)
         )
-        time.sleep(2)
+        time.sleep(5)
         if response.status_code == 200:
             try:
                 products = response.json()
@@ -64,7 +64,7 @@ def save_to_excel(products, category_id):
     df = df[df["List Image Links"] != ""]
 
     # Lưu vào file Excel
-    file_name = f"products_category_{category_id}-31-03-v3.xlsx"
+    file_name = f"products_category_{category_id}-24-04.xlsx"
     df.to_excel(file_name, index=False)
     print(f"📂 Đã lưu danh sách sản phẩm vào file `{file_name}`!")
 

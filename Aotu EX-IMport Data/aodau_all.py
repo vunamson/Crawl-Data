@@ -77,10 +77,10 @@ def build_paged_url(category_url, page):
         return f"{category_url}&pageNumber={page}"
     else:
         return f"{category_url}?pageNumber={page}"
+    
 
-async def get_all_product_links(session, category_url):
+async def get_all_product_links(driver,session, category_url):
     product_links = []
-    driver = create_driver()
     driver.get(category_url)
     time.sleep(10)
     while True:
@@ -123,17 +123,26 @@ async def get_all_product_links(session, category_url):
         except TimeoutException:
             print("Không tìm thấy phần tử mong muốn, thoát chương trình.")
             break
-    driver.quit()
+    # driver.quit()
     return product_links
 
 def clean_image_url(url):
     return re.sub(r'-\d{2,4}x\d{2,4}(?=\.(jpg|png|jpeg|webp))', '', url)
 
-async def parse_product(session, url, sku_prefix, description, price, record_idx):
+async def parse_product(driver, url, sku_prefix, description, price, record_idx):
     results = []
-    driver = create_driver()
     try :
         driver.get(url)
+        try:
+            popup_close = WebDriverWait(driver, 3).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".overlay-close, .popup-close, .lightbox-close"))  # tuỳ vào class của popup
+            )
+            driver.execute_script("arguments[0].click();", popup_close)
+            print("🔒 Đã đóng popup.")
+            time.sleep(1)
+        except:
+            pass
+        time.sleep(1)
         WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[data-talos="labelPdpProductTitle"]'))
         )
@@ -143,10 +152,13 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
                 try:
                     driver.execute_script("arguments[0].click();", button)
                     time.sleep(1)  # Giảm thời gian sleep
+                    # name_data_talos = 
                     name_element = driver.find_element(By.CSS_SELECTOR, 'h1[data-talos="labelPdpProductTitle"]')
                     name = name_element.text.strip() if name_element else "N/A"
                     # Lấy danh sách ảnh sau khi chọn màu
-                    img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
+                    img_elements1 = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
+                    img_elements2 = driver.find_elements(By.XPATH, '//img[@loading="lazy" and @alt=""]')
+                    img_elements = img_elements1 if len(img_elements1) > 0 else img_elements2
                     img_links = [img.get_attribute("src") for img in img_elements]
 
                     img_links_str = ", ".join(img_links) if img_links else "LỖI"
@@ -158,11 +170,12 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
                     print(f"✅ {name} ({len(img_links)} ảnh)")
                 except Exception as e:
                     print(f"⚠️ Lỗi khi click màu: {e}")
-                    data.append([name, "LỖI"])
         else:
             name_element = driver.find_element(By.CSS_SELECTOR, 'h1[data-talos="labelPdpProductTitle"]')
             name = name_element.text.strip() if name_element else "N/A"
-            img_elements = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
+            img_elements1 = driver.find_elements(By.CSS_SELECTOR, 'img.thumbnail-image')
+            img_elements2 = driver.find_elements(By.XPATH, '//img[@loading="lazy" and @alt=""]')
+            img_elements = img_elements1 if len(img_elements1) > 0 else img_elements2
             img_links = [img.get_attribute("src") for img in img_elements]
             img_links_str = ", ".join(img_links) if img_links else "LỖI"
             results.append([
@@ -173,13 +186,12 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
             print(f"✅ {name} ({len(img_links)} ảnh)")
     except Exception as e:
         print(f"❌ Lỗi khi crawl {url}: {e}")
-        driver.quit()
-        time.sleep(10)
-        driver = create_driver()
+        return None
+        # driver.quit()
+        # time.sleep(10)
+        # driver = create_driver()
 
-    driver.quit()
-
-    return results
+    return results if len(results) > 0  else None
 
 
     # soup = BeautifulSoup(html, "html.parser")
@@ -256,27 +268,43 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
 
 
 async def crawl_all():
+
+    driver = create_driver()
     async with aiohttp.ClientSession(headers=headers) as session:
-        tasks = []
+        all_product_links = []  # chứa tất cả product link từ mọi danh mục
+        product_metadata = []   # chứa [link, sku_prefix, description, price] để dùng sau   
+        # driver = create_driver()
         for idx, cat_url in enumerate(urls):
             sku_prefix = extra_data[idx] if idx < len(extra_data) else "SKU"
             description = desc_data[idx] if idx < len(desc_data) else ""
             price = price_data[idx] if idx < len(price_data) else "0"
             # header_url_index = header_url[idx] if idx < len(price_data) else "0"
             print(f"📂 Crawling category: {cat_url}")
-            product_links = await get_all_product_links(session, cat_url)
+            product_links = await get_all_product_links(driver,session, cat_url)
             print(f"🔗 Found {len(product_links)} product links.")
-
             for record_idx, link in enumerate(product_links):
-                tasks.append(parse_product(session, link, sku_prefix, description, price, record_idx))
-
-        results = await asyncio.gather(*tasks)
-        for res in results:
-            if res:
-                data.append(res)
+                retries = 0
+                while retries < 2:
+                    res = await parse_product(driver, link, sku_prefix, description, price, record_idx)
+                    if res is not None:
+                        for row in res :
+                            data.append(row)
+                    else:
+                        print(f"🔁 Retry {retries + 1} for {link}")
+                        driver.quit()
+                        time.sleep(10)
+                        driver = create_driver()
+                        retries += 1
+                # tasks.append(parse_product(driver, link, sku_prefix, description, price, record_idx))
+        # results = await asyncio.gather(*tasks)
+        # for res in results:
+        #     if res:
+        #         data.append(res)
 
     df = pd.DataFrame(data, columns=header)
     df.to_csv("ao_dau.csv", index=False, encoding="utf-8-sig")
     print("🎉 DONE! Data saved to ao_dau.csv")
+
+    driver.quit()
 
 asyncio.run(crawl_all())
