@@ -3,9 +3,9 @@ import pandas as pd
 import time
 
 # 🔹 Thông tin API WooCommerce
-BASE_URL = "https://noaweather.com/wp-json/wc/v3/products"
-CONSUMER_KEY = "ck_2aee67011194936fb03769a834503ca8aa5a4795"
-CONSUMER_SECRET = "cs_dbcfaaabe5ea49875c5fcf27a760b141d9549f86"
+BASE_URL = "https://luxinshoes.com/wp-json/wc/v3/products"
+CONSUMER_KEY = "ck_8cefa1d518006ccaee178f71e452757e91d20b23"
+CONSUMER_SECRET = "cs_05f41803467c28748d41d970a4fafc6144bbdb87"
 
 def get_all_products():
     """
@@ -65,7 +65,7 @@ def save_to_excel(products):
 
     df = df[df["List Image Links"] != ""]  # Bỏ những sản phẩm không có ảnh
 
-    file_name = f"all_products_noaweather.xlsx"
+    file_name = f"all_products_luxinshoes.xlsx"
     df.to_excel(file_name, index=False)
     print(f"📂 Đã lưu danh sách sản phẩm vào file `{file_name}`!")
 

@@ -184,9 +184,26 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
         except Exception as e:
             print(f"Error parsing JSON-LD: {e}")
 
+    if not img_urls:
+        for script_tag in soup.find_all("script", type="application/ld+json", class_="rank-math-schema"):
+            try:
+                data = json.loads(script_tag.string)
+                if "@graph" in data:
+                    for item in data["@graph"]:
+                        if item.get("@type") == "Product" and "image" in item:
+                            images = item["image"]
+                            if isinstance(images, list):
+                                for img in images:
+                                    if isinstance(img, dict) and img.get("@type") == "ImageObject" and "url" in img:
+                                        img_urls.append(img["url"])
+                            elif isinstance(images, dict) and "url" in images:
+                                img_urls.append(images["url"])
+            except Exception as e:
+                print(f"Error parsing JSON-LD: {e}")
+
     # Nếu không có URL nào trong JSON-LD, fallback sang thẻ <img>
     if not img_urls:
-        img_elements = soup.find_all("img", class_="attachment-woocommerce_thumbnail")
+        img_elements = soup.find_all("img", class_="attachment-woocommerce_thumbnail",alt = "")
         img_urls = [img.get("src") for img in img_elements if img.get("src")]
 
 
