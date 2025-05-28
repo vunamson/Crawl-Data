@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from aiohttp import ClientTimeout
 
 # === Cấu hình Google Sheets ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -19,6 +20,9 @@ urls = sheet.col_values(1)[1:]
 extra_data = sheet.col_values(2)[1:]
 desc_data = sheet.col_values(3)[1:] if len(sheet.col_values(3)) >= 1 else []
 price_data = sheet.col_values(4)[1:] if len(sheet.col_values(4)) >= 1 else []
+categories = sheet.col_values(5)[1:] if len(sheet.col_values(5)) >= 1 else []
+tag = sheet.col_values(6)[1:] if len(sheet.col_values(6)) >= 1 else []
+remote_words = sheet.col_values(7)[1:] if len(sheet.col_values(6)) >= 1 else []
 
 headers = {"User-Agent": "Mozilla/5.0"}
 semaphore = asyncio.Semaphore(10)
@@ -88,7 +92,7 @@ async def get_all_product_links(session, category_url):
 def clean_image_url(url):
     return re.sub(r'-\d{2,4}x\d{2,4}(?=\.(jpg|png|jpeg|webp))', '', url)
 
-async def parse_product(session, url, sku_prefix, description, price, record_idx):
+async def parse_product(session, url, sku_prefix, description, price, record_idx,categories_idx,tag_idx,to_remove):
     html = await fetch(session, url)
     if not html:
         return None
@@ -98,6 +102,9 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
     if not title:
         title = soup.find("h1", class_="product_title")
     name = title.text.strip() if title else "N/A"
+    for w in to_remove:
+        name = name.replace(w, "")
+    name = name.strip()
 
     # Lấy ảnh chính nếu có
     image_main = soup.select_one('img.skip-lazy')
@@ -155,32 +162,43 @@ async def parse_product(session, url, sku_prefix, description, price, record_idx
     print(f"✅ {name} ({len(img_links)} ảnh)")
     return [
         "", "simple", f"{sku_prefix}-{100000 + 2 * record_idx}", name, 1, 0, "visible", "", description, "", "", "taxable", "", 1, "", "", 0, 0,
-        "", "", "", "", 1, "", "", price, sku_prefix, sku_prefix, "", img_links_str,
+        "", "", "", "", 1, "", "", price, categories_idx, tag_idx, "", img_links_str,
         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",""
     ]
 
 async def crawl_all():
-    async with aiohttp.ClientSession(headers=headers) as session:
+    timeout = ClientTimeout(total=30)
+    async with aiohttp.ClientSession(headers=headers,timeout = timeout) as session:
         tasks = []
         for idx, cat_url in enumerate(urls):
             sku_prefix = extra_data[idx] if idx < len(extra_data) else "SKU"
             description = desc_data[idx] if idx < len(desc_data) else ""
             price = price_data[idx] if idx < len(price_data) else "0"
+            categories_idx = categories[idx] if idx < len(price_data) else ""
+            tag_idx = tag[idx] if idx < len(price_data) else ""
+            to_remove = [w.strip() for w in remote_words[idx].split(",") if w.strip()]
             print(f"📂 Crawling category: {cat_url}")
             product_links = await get_all_product_links(session, cat_url)
             print(f"🔗 Found {len(product_links)} product links.")
 
             for record_idx, link in enumerate(product_links):
-                tasks.append(parse_product(session, link, sku_prefix, description, price, record_idx))
+                tasks.append(parse_product(session, link, sku_prefix, description, price, record_idx,categories_idx,tag_idx,to_remove))
 
-        results = await asyncio.gather(*tasks)
-        for res in results:
-            if res is not None:
-                for row in res:
-                    if len(row) == len(header):
-                        data.append(row)
-                    else:
-                        print(f"⚠️ Row invalid column count: {len(row)} vs {len(header)}")
+        for coro in asyncio.as_completed(tasks):
+            try:
+                row = await coro
+                if row:
+                    data.append(row)
+            except Exception as e:
+                print(f"❗️ Lỗi khi parse product: {e}")
+        # results = await asyncio.gather(*tasks)
+        # for res in results:
+        #     if res is not None:
+        #         for row in res:
+        #             if len(row) == len(header):
+        #                 data.append(row)
+        #             else:
+        #                 print(f"⚠️ Row invalid column count: {len(row)} vs {len(header)}")
 
     df = pd.DataFrame(data, columns=header)
     df.to_csv("woo_products_aiohttp.csv", index=False, encoding="utf-8-sig")

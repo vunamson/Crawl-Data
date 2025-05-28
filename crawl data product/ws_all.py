@@ -1,43 +1,63 @@
 import requests
 import pandas as pd
 import time
+from requests.exceptions import ConnectionError, Timeout
+from urllib3.exceptions import ProtocolError
 
+
+BASE_URL       = "https://noaweather.com/wp-json/wc/v3/products"
+CK, CS         = "ck_ad85bc0fe8241b2db94a65ec9b971c402fda6749", "cs_3ebdbead13332abcdd04d3557be68f834395ec18"
+PER_PAGE       = 100   # giảm số sản phẩm mỗi request
+MAX_RETRIES    = 3
+BACKOFF_FACTOR = 5    # giây tăng dần
 # 🔹 Thông tin API WooCommerce
-BASE_URL = "https://luxinshoes.com/wp-json/wc/v3/products"
-CONSUMER_KEY = "ck_8cefa1d518006ccaee178f71e452757e91d20b23"
-CONSUMER_SECRET = "cs_05f41803467c28748d41d970a4fafc6144bbdb87"
+# BASE_URL = "https://noaweather.com/wp-json/wc/v3/products"
+# CONSUMER_KEY = "ck_ad85bc0fe8241b2db94a65ec9b971c402fda6749"
+# CONSUMER_SECRET = "cs_3ebdbead13332abcdd04d3557be68f834395ec18"
+
+session = requests.Session()
+session.auth    = (CK, CS)
+session.headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
 
 def get_all_products():
     """
     Lấy tất cả sản phẩm từ WooCommerce bằng API (không lọc theo category)
     """
     page = 1
-    per_page = 100  # Số sản phẩm mỗi lần request (tối đa 100)
     all_products = []
 
     while True:
-        print(f"🔄 Đang lấy dữ liệu trang {page}...")
-        response = requests.get(
-            f"{BASE_URL}?per_page={per_page}&page={page}",
-            auth=(CONSUMER_KEY, CONSUMER_SECRET)
-        )
-        time.sleep(20)
-        page += 1
-        if response.status_code == 200:
+        print(f"🔄 Lấy trang {page} (per_page={PER_PAGE})…")
+        for attempt in range(1, MAX_RETRIES+1):
             try:
-                products = response.json()
-                if not products:
-                    print(f"✅ Không còn sản phẩm ở trang {page}, kết thúc.")
-                    break
-                all_products.extend(products)
-            except ValueError:
-                print(f"❌ Không thể phân tích JSON tại trang {page}. Nội dung trả về:\n{response.text}")
-                continue
+                resp = session.get(
+                    BASE_URL,
+                    params={"per_page": PER_PAGE, "page": page},
+                    timeout=(5, 30)
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except (ConnectionError, ProtocolError, Timeout) as e:
+                wait = BACKOFF_FACTOR * attempt
+                print(f"⚠️ Lỗi kết nối (lần {attempt}): {e}. Đợi {wait}s rồi thử lại…")
+                time.sleep(wait)
         else:
-            print(f"⚠️ Lỗi {response.status_code}: {response.text}")
-            continue
+            print("❌ Retry vượt quá giới hạn, thoát vòng lặp.")
+            return all_products
 
-    print(f"✅ Lấy thành công {len(all_products)} sản phẩm!")
+        if not data:
+            print("✅ Hết sản phẩm, kết thúc.")
+            break
+
+        all_products.extend(data)
+        page += 1
+        time.sleep(10)  # đợi lâu hơn giữa các trang
+
+    print(f"✅ Tổng {len(all_products)} sản phẩm.")
     return all_products
 
 def save_to_excel(products):
@@ -65,7 +85,7 @@ def save_to_excel(products):
 
     df = df[df["List Image Links"] != ""]  # Bỏ những sản phẩm không có ảnh
 
-    file_name = f"all_products_luxinshoes.xlsx"
+    file_name = f"all_products_noaweather.xlsx"
     df.to_excel(file_name, index=False)
     print(f"📂 Đã lưu danh sách sản phẩm vào file `{file_name}`!")
 
