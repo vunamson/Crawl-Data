@@ -362,7 +362,9 @@ async def crawl_all():
                 retries = 0
                 while retries < 2:
                     res = await parse_product(driver, link, sku_prefix, description, price, record_idx)
-                    if res == "breck" : break
+                    if res == "breck" : 
+                        retries += 1
+                        break
                     if res is not None:
                         for row in res :
                             data.append(row)
